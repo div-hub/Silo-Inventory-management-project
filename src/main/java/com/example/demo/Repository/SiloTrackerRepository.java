@@ -6,59 +6,37 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import javax.transaction.Transactional;
-
 import java.util.List;
 
 @Repository
 public interface SiloTrackerRepository extends  JpaRepository<SiloTracker,Long>  {
 
- //Query to determine the batch
- @Transactional
-@Query("select batchid from SiloTracker where silonum = :#{#silonum} and timestamp=(select min(timestamp) from SiloTracker where silonum =:#{#silonum} and openquantity>0)")
- String findBatchIdBySiloId(Long silonum);
+//Query to determine the batch
+    @Transactional
+    @Query("select batchId from SiloTracker where siloId = :#{#siloid} and timestamp=(select min(timestamp) from SiloTracker where siloid =:#{#siloid} and openquantity>0)")
+    String findBatchIdBySiloId(String siloid);
 
-
-//Method to get the details of the particular silo
- List<SiloTracker> findAllBySilonum(Long silonum);
-
-
-
-
-
-    @Query("select materialid from SiloTracker where materialid= :#{#materialid}")
+//Query to get the materialid for input validation(material exists or not)
+    @Query("select materialId from SiloTracker where materialId= :#{#materialid}")
     List getMaterial(String materialid);
 
-    @Query("select materialid from SiloTracker where silonum= :#{#silonum} ")
-    List checkCombination(Long silonum);
 
-    @Query("select batchid,materialid,openquantity from SiloTracker where silonum= :#{#silonum}")
-    List checkCurrentStock(Long silonum);
-
-    @Query("select batchid from SiloTracker where batchid= :#{#batchid} ")
-    String validateBatch(String batchid);
-
- @Modifying
- @Transactional
- @Query(value="insert into silo_tracker(silonum,materialid,openquantity,batchquantity,uom,batchid) values(:silonum,:materialid,:quantity,:quantity,:uom,:batchid)", nativeQuery = true)
- void saveSiloTracker(@Param("silonum") Long silonum,
-
-                      @Param("materialid") String materialid,
-                      @Param("quantity") Long openquantity,
-                      @Param("quantity") Long batchquantity,
-                      @Param("uom") String uom,
-                      @Param("batchid") String batchid);
+    //Query to update the record against the determined batch
+    @Modifying
+    @Transactional
+    @Query("update SiloTracker set openQuantity=openQuantity - :#{#quantity} where batchId=:#{#batchfound} ")
+    void updateSiloTracker(@Param("quantity") Long quantity,@Param("batchfound") String batchfound);
 
 
- //Query to update the record against the determined batch
- @Modifying
- @Transactional
- @Query("update SiloTracker set openquantity=openquantity - :#{#quantity} where batchid=:#{#batchfound} ")
- void updateSiloTracker(@Param("quantity") Long quantity,@Param("batchfound") String batchfound);
+//Method to check if silo exists
+    boolean existsSiloTrackerBySiloId(String siloid);
 
- boolean existsSiloTrackerBySilonum(Long usersilonum);
+//Method to perform validation(Correct combination of siloId and materialId)
+    @Query("select materialId from SiloTracker where siloId= :#{#siloid} ")
+    List checkCombination(String siloid);
 
- boolean existsSiloTrackerByMaterialid(String materialid);
 
+    List<SiloTracker> findAllBySiloId(String siloId);
 
 
 }

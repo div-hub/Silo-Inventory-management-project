@@ -24,14 +24,20 @@ public class SiloTracker {
             allocationSize = 1
     )
     @Column(columnDefinition = "serial")
-
     private Long inventoryid;
-    private String siloid;
-    private Long silonum;
-    private String materialid;
-    private String batchid;
-    private Long batchquantity;
-    private Long openquantity;
+    @Column(name="siloid")
+    private String siloId;
+    @Column(name="silonum")
+    private Long siloNum;
+    @Column(name="materialid")
+    private String materialId;
+    @Column(name="batchid")
+    private String batchId;
+    @Column(name="batchquantity")
+    private Long batchQuantity;
+    @Column(name="openquantity")
+    private Long openQuantity;
+    @Column(name="uom")
     private String uom;
     @CreationTimestamp
     @Column( nullable = false, updatable = false,columnDefinition = "timestamp default current_timestamp")
@@ -42,8 +48,8 @@ public class SiloTracker {
     public SiloTracker() {
     }
 
-    public void setBatchid(String batchid) {
-       this.batchid = batchid;
-   }
+    public void setBatchId(String batchId) {
+        this.batchId = batchId;
+    }
 
 }

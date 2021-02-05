@@ -3,8 +3,7 @@ package com.example.demo.Controllers;
 
 import com.example.demo.Models.SiloTracker;
 import com.example.demo.Repository.SiloTrackerRepository;
-import com.example.demo.Repository.InvPostingRepository;
-import com.example.demo.Service.ISiloService;
+import com.example.demo.Service.SiloService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,93 +12,59 @@ import java.util.List;
 
 @RestController
 public class SiloController {
-    @Autowired
-    private ISiloService iSiloTrackerService;
+
 
     @Autowired
     private SiloTrackerRepository siloTrackerRepository;
 
+
+
     @Autowired
-    private InvPostingRepository invp;
+    private SiloService siloService;
 
+    //Posting Goods Receipt
+    @PostMapping("/goodsReceiptPosting")
+    public String  createGoodsReceipt(@RequestBody GoodsReceiptRequest goodsReceiptRequest){
 
+    //Performing input validation (To check the combination of silo and materialId)
+        if(siloTrackerRepository.existsSiloTrackerBySiloId(goodsReceiptRequest.getSiloId())){
+            if(!siloTrackerRepository.checkCombination(goodsReceiptRequest.getSiloId()).get(0).equals(goodsReceiptRequest.getMaterialId()))
+                return "Invalid combination of material and silo.Try Again!";}
 
-
-    //This current stock method returns batchid, open quantity and materialid
-    @GetMapping("/currentStock/{usersilonum}")
-    List queryCurrentStock(@PathVariable(value = "usersilonum") Long usersilonum) {
-        return iSiloTrackerService.currentStock(usersilonum);
-
-
-    }
-    //This current stock method returns all the details pertaining to a particular silo
-    @GetMapping(value = "/getTheCurrentStock/{usersilonum}")
-    List<SiloTracker> readingSiloBysiloId(@PathVariable(value = "usersilonum")  Long usersilonum) {
-
-        return iSiloTrackerService.findAllBySilonum(usersilonum);
+    //Calling the method in the Service class to save Goods Receipt
+        siloService.performGoodsReceipt(goodsReceiptRequest);
+        return "Posted successfully ";
 
     }
 
 
-    //Method for performing Goods Issue
-    @GetMapping("/goodsIssue/{usersilonum}/{qty}/{uom}/{materialid}")
-    public String GoodsIssue(@PathVariable(value = "usersilonum") Long usersilonum, @PathVariable(value = "qty") Long qty,@PathVariable(value = "uom") String uom,@PathVariable(value = "materialid") String materialid) {
+//Performing Goods Issue
+    @PutMapping("/GoodsIssuePosting/{userSiloId}/{userMaterialId}/{Quantity}/{uom}")
+    public String createGoodsIssue(@PathVariable(value = "userSiloId") String userSiloId,@PathVariable(value = "userMaterialId") String userMaterialId,@PathVariable(value = "Quantity") Long Quantity,@PathVariable(value="uom") String uom){
 
-       //Input validation to check whether silo exists
-        if(!siloTrackerRepository.existsSiloTrackerBySilonum(usersilonum))
-            return "Silo not found.Try Again!";
-       //Input validation to check whether material exists
-        if(siloTrackerRepository.getMaterial(materialid).isEmpty())
-            return "Material not found.Try Again!";
-       //Input validation to check the combination of silo and material
-        if(!(siloTrackerRepository.checkCombination(usersilonum).get(0).equals(materialid)))
-            return "Invalid combination of silo and material.Try Again!";
+        //Validation for the existence of Silo
+        if(!siloTrackerRepository.existsSiloTrackerBySiloId(userSiloId))
+            return "Silo Not Found.Try Again!";
+        //Validation for the existence of materialId
+        if(siloTrackerRepository.getMaterial(userMaterialId).isEmpty())
+            return "Material Not Found.Try Again!";
+        //Validation for the correct combination of silo and materialId
+        if(!siloTrackerRepository.checkCombination(userSiloId).get(0).equals(userMaterialId))
+            return "Invalid Combination of Silo and material.Try Again! ";
 
-
-       //Determining the batch
-        String batchnum=siloTrackerRepository.findBatchIdBySiloId(usersilonum);
-
-
-
-        //Updating the silo_tracker table
-        siloTrackerRepository.updateSiloTracker(qty,batchnum);
-
-        //Updating the Inventory Posting table
-        invp.saveGoodsIssueAfterUpdate(usersilonum,materialid,"GI",batchnum,qty,uom);
-
-
-        return ("updated successfully from batch"+"  "+ batchnum);
-
+       //Determining the batch and posting Goods Issue
+        String batchDetermined=siloService.performGoodsIssue(userSiloId,userMaterialId,Quantity,uom);
+        return "Update successfully from Batch with Id:" + batchDetermined;
     }
 
 
-    //Methods for performing goods receipt
-    @GetMapping(value="/goodsReceipt/{usersilonum}/{materialid}/{postingtype}/{quantity}/{uom}/{batchid}")
+//To get the Current Stock based on the siloId given
+    @GetMapping("/getTheCurrentStock/{userSiloId}")
+    List<SiloTracker> currentStock(@PathVariable("userSiloId") String userSiloId){
+        return siloTrackerRepository.findAllBySiloId(userSiloId);
 
-   public String GoodsReceipt
-            ( @PathVariable(value="usersilonum") Long usersilonum ,
-
-              @PathVariable(value="materialid") String materialid,
-              @PathVariable(value="postingtype") String postingtype,
-              @PathVariable(value="quantity") Long quantity,
-              @PathVariable(value="uom") String uom,
-              @PathVariable(value="batchid") String batchid){
-
-   //validation to ensure the right cobination of material and silo while storing
-    if(siloTrackerRepository.existsSiloTrackerBySilonum(usersilonum)){
-      if(!(siloTrackerRepository.checkCombination(usersilonum).get(0).equals(materialid)))
-            return "Invalid combination of silo and material.Try Again!";}
-
-
-        //Saving the data in inventory_posting table
-        iSiloTrackerService.serGoodsReceipt(usersilonum, materialid, postingtype, quantity,uom,batchid);
-
-        //Saving the data in the silo_tracker table
-        iSiloTrackerService.serSiloTracker(usersilonum,materialid,quantity,quantity,uom,batchid);
-
-
-        return "Posted  successfully";
 
     }
+
 
 }

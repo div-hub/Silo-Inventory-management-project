@@ -20,7 +20,8 @@ class GoodsIssueApplicationTests {
 
     @Test
     void test() {
-       siloTrackerSiloService.findBatchIdBySiloId(4l);
+
+       //siloTrackerSiloService.findBatchIdBySiloId(4l);
 
 
         }
